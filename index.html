@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>WOLFFY Mobile HW: Wish You Were Here (B2)</title>
+    
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800&family=Playfair+Display:ital,wght@0,700;1,700&family=Space+Mono&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        floyd: {
+                            bg: '#020617',
+                            panel: '#0f172a',
+                            border: '#1e293b',
+                            fire: '#ea580c',
+                            smoke: '#cbd5e1',
+                            wrong: '#ef4444'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Outfit', 'sans-serif'],
+                        surreal: ['"Playfair Display"', 'serif'],
+                        mono: ['"Space Mono"', 'monospace']
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #020617;
+            background-image: radial-gradient(circle at 50% 0%, #0f172a 0%, #020617 70%);
+            color: #cbd5e1;
+            font-family: 'Outfit', sans-serif;
+            display: flex; justify-content: center; align-items: center;
+            min-height: 100vh; margin: 0; padding: 0; user-select: none;
+        }
+
+        .mobile-wrapper {
+            width: 100%; max-width: 430px; height: 100vh; max-height: 100vh;
+            background-color: #020617; position: relative; overflow-x: hidden; overflow-y: auto; scroll-behavior: smooth;
+        }
+        @media (min-width: 640px) {
+            .mobile-wrapper {
+                height: 90vh; border-radius: 8px; border: 1px solid #1e293b;
+                box-shadow: 0 25px 50px -12px rgba(234, 88, 12, 0.15), inset 0 0 0 2px #0f172a;
+            }
+        }
+        .mobile-wrapper::-webkit-scrollbar { width: 4px; }
+        .mobile-wrapper::-webkit-scrollbar-track { background: transparent; }
+        .mobile-wrapper::-webkit-scrollbar-thumb { background: #ea580c; border-radius: 10px; }
+
+        .question-card { background-color: rgba(15, 23, 42, 0.85); border: 1px solid #1e293b; backdrop-filter: blur(8px); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        .question-card.active { border-color: #ea580c; box-shadow: 0 0 15px rgba(234, 88, 12, 0.15); }
+
+        .option-btn { transition: all 0.2s; border-left: 4px solid transparent; background-color: #020617; border: 1px solid #1e293b;}
+        .option-btn:hover:not(:disabled) { background: rgba(234, 88, 12, 0.05); border-color: #ea580c; transform: translateX(4px); }
+        .option-btn.correct { background-color: #ea580c !important; color: #fff !important; border-color: #ea580c !important; font-weight: bold; box-shadow: 0 0 15px rgba(234, 88, 12, 0.4); }
+        .option-btn.wrong { background-color: #ef4444 !important; color: white !important; border-color: #ef4444 !important; font-weight: bold; box-shadow: 0 0 15px rgba(239,68,68,0.4); }
+        .option-btn:disabled { cursor: not-allowed; opacity: 0.6; }
+
+        .shake { animation: shake 0.4s both; border-color: #ef4444 !important; }
+        @keyframes shake { 10%, 90% { transform: translate3d(-2px, 0, 0); } 20%, 80% { transform: translate3d(3px, 0, 0); } 30%, 50%, 70% { transform: translate3d(-5px, 0, 0); } 40%, 60% { transform: translate3d(5px, 0, 0); } }
+
+        .progress-point { transition: all 0.3s; }
+        .progress-point.filled { background-color: #ea580c; box-shadow: 0 0 8px #ea580c; }
+
+        .confetti { position: absolute; width: 6px; height: 12px; opacity: 0; z-index: 100; box-shadow: 0 0 5px currentColor;}
+        @keyframes fall { 0% { transform: translateY(-10vh) rotate(0deg); opacity: 1; } 100% { transform: translateY(110vh) rotate(720deg); opacity: 0; } }
+
+        .vinyl-spin { animation: spin 5s linear infinite; }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+
+    <div class="mobile-wrapper" id="app-container">
+        
+        <header class="sticky top-0 z-50 bg-[#020617]/95 backdrop-blur-md border-b border-floyd-border px-6 pt-5 pb-3 shadow-md">
+            <div class="flex justify-between items-center mb-4">
+                <div>
+                    <h1 class="font-sans font-black text-white tracking-widest text-xl uppercase">WOLFFY <span class="text-floyd-fire">B2</span></h1>
+                    <p class="font-mono text-[10px] text-gray-400 uppercase tracking-widest font-bold">HW TAPE • PINK FLOYD</p>
+                </div>
+                <div class="text-right bg-floyd-panel px-3 py-1 rounded border border-floyd-border">
+                    <span id="score-counter" class="font-mono text-xs font-bold text-floyd-fire tracking-widest">0/15 HITS</span>
+                </div>
+            </div>
+            <div class="flex justify-between gap-1 mb-1" id="progress-container"></div>
+        </header>
+
+        <main class="p-4 pb-32 space-y-6">
+            
+            <div class="bg-floyd-panel p-5 rounded border border-floyd-border relative overflow-hidden flex flex-col items-center text-center shadow-[0_10px_20px_rgba(0,0,0,0.5)]">
+                <div class="absolute w-32 h-32 bg-floyd-fire/20 rounded-full blur-2xl top-0 left-0"></div>
+                <div class="w-24 h-24 rounded-full border-4 border-[#1e293b] border-t-floyd-fire animate-spin mb-4 shadow-[0_0_15px_rgba(234,88,12,0.4)] flex items-center justify-center z-10">
+                    <div class="w-20 h-20 rounded-full overflow-hidden vinyl-spin border border-black bg-[#020617] flex items-center justify-center relative">
+                        <img src="https://i.scdn.co/image/ab67616d0000b2735d48e2f56d691f9a4e4b0bdf" class="absolute inset-0 w-full h-full object-cover opacity-60 grayscale filter contrast-125">
+                        <div class="w-4 h-4 bg-floyd-fire rounded-full z-20 border border-black hidden"></div>
+                    </div>
+                </div>
+                <div class="w-full bg-[#020617] mt-2 p-3 text-center border border-floyd-border rounded z-10">
+                    <h2 class="font-surreal italic font-bold text-white text-xl uppercase tracking-widest">The Perception Quiz</h2>
+                    <p class="font-mono text-[10px] font-bold text-gray-400 mt-1 uppercase tracking-widest">Embedded Questions</p>
+                </div>
+            </div>
+
+            <div id="quiz-container" class="space-y-6 relative z-10"></div>
+        </main>
+
+        <div class="sticky bottom-0 left-0 w-full bg-gradient-to-t from-[#020617] via-[#020617] to-transparent pt-12 pb-6 px-6 z-50">
+            <button id="submit-btn" onclick="checkAllAndSubmit()" class="w-full bg-transparent border-2 border-floyd-fire text-floyd-fire font-sans font-black text-lg tracking-widest uppercase py-4 rounded shadow-[0_0_15px_rgba(234,88,12,0.2)] transition-all active:scale-95 flex items-center justify-center gap-3 hover:bg-floyd-fire hover:text-white">
+                <i class="fa-solid fa-fire"></i>
+                FINISH SHOW
+            </button>
+        </div>
+
+        <div id="success-overlay" class="fixed inset-0 bg-[#020617]/95 backdrop-blur-sm z-[100] flex-col items-center justify-center opacity-0 pointer-events-none transition-opacity duration-300 hidden">
+            <div class="w-24 h-24 bg-floyd-panel border-2 border-floyd-fire rounded-full flex items-center justify-center mb-6 shadow-[0_0_30px_rgba(234,88,12,0.4)] transform scale-50 transition-transform duration-500" id="success-badge">
+                <i class="fa-solid fa-check text-5xl text-floyd-fire"></i>
+            </div>
+            <h1 class="font-surreal font-bold italic text-4xl text-white mb-2 text-center tracking-widest">PROFOUND</h1>
+            <div class="bg-floyd-panel border border-floyd-fire px-8 py-2 rounded mb-6 mt-4 shadow-[0_0_15px_rgba(234,88,12,0.2)]">
+                <div class="font-mono text-floyd-fire text-xl font-bold tracking-widest" id="final-score">SCORE: 15/15</div>
+            </div>
+            <p class="font-sans text-gray-400 text-sm mb-10 text-center max-w-[280px]">You mastered Embedded Questions. You can tell heaven from hell.</p>
+            <button onclick="location.reload()" class="bg-floyd-fire text-white font-sans font-black px-10 py-4 rounded uppercase text-lg tracking-widest hover:bg-white hover:text-black transition-colors shadow-[0_0_15px_rgba(234,88,12,0.4)]">PLAY AGAIN</button>
+        </div>
+    </div>
+
+    <script>
+        const quizData = [
+            { q: "1. 'Do you think you ______ heaven from hell?'", a: ["can tell", "can you tell", "could tell"], c: 0 },
+            { q: "2. In embedded questions, the second verb...", a: ["Must be inverted", "Follows standard Subject + Verb order", "Is always past tense"], c: 1 },
+            { q: "3. 'Can you tell a fake smile ______ a real one?'", a: ["of", "to", "from"], c: 2 },
+            { q: "4. What does a 'walk-on part' mean metaphorically?", a: ["Being the boss", "Having an insignificant, small role", "Walking to work"], c: 1 },
+            { q: "5. 'I want to know if he ______ his heroes for ghosts.'", a: ["did trade", "traded", "trades"], c: 1 },
+            { q: "6. 'To tell' in the phrase 'tell heaven from hell' means...", a: ["To speak", "To distinguish or recognize the difference", "To shout"], c: 1 },
+            { q: "7. 'I wonder why ______ so much.'", a: ["does he change", "he changes", "he change"], c: 1 },
+            { q: "8. A 'veil' is used to...", a: ["Show the truth", "Hide something or cover a face", "Make a sound"], c: 1 },
+            { q: "9. 'Do you know what ______?'", a: ["time is it", "time it is", "is it time"], c: 1 },
+            { q: "10. To 'trade' something means to...", a: ["Keep it forever", "Exchange it for something else", "Destroy it"], c: 1 },
+            { q: "11. 'Did they get you to trade your heroes ______ ghosts?'", a: ["to", "for", "with"], c: 1 },
+            { q: "12. In the song, a 'lead role in a cage' means...", a: ["Being an actor", "Having a big position but feeling trapped", "Working with animals"], c: 1 },
+            { q: "13. 'I'm not sure where ______.'", a: ["did she go", "she went", "she goes"], c: 1 },
+            { q: "14. Pink Floyd's 'Wish You Were Here' was dedicated to...", a: ["A politician", "Their founder, Syd Barrett", "The music industry"], c: 1 },
+            { q: "15. 'Can you tell me how ______?'", a: ["it works", "does it work", "works it"], c: 0 }
+        ];
+
+        let userAnswers = Array(15).fill(null);
+        let solvedCount = 0;
+
+        function initQuiz() {
+            const container = document.getElementById('quiz-container');
+            const progress = document.getElementById('progress-container');
+            
+            quizData.forEach((item, idx) => {
+                const dot = document.createElement('div');
+                dot.className = `h-1 flex-1 bg-[#1e293b] rounded-full progress-point dot-${idx}`;
+                progress.appendChild(dot);
+
+                const card = document.createElement('div');
+                card.className = `question-card rounded p-5 shadow-lg q-card-${idx}`;
+                card.innerHTML = `
+                    <p class="font-sans text-lg font-bold mb-4 tracking-wide text-white leading-snug">${item.q}</p>
+                    <div class="grid grid-cols-1 gap-2 font-sans tracking-wider text-sm">
+                        ${item.a.map((opt, oIdx) => `
+                            <button class="option-btn border border-floyd-border text-gray-300 py-4 px-4 rounded text-left flex items-center justify-between group btn-${idx}-${oIdx}" onclick="answer(${idx}, ${oIdx})">
+                                <span class="font-bold">${opt}</span>
+                                <div class="w-4 h-4 rounded-sm border border-floyd-border group-hover:border-floyd-fire transition-colors flex items-center justify-center text-[10px]"></div>
+                            </button>
+                        `).join('')}
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function answer(qIdx, oIdx) {
+            if (userAnswers[qIdx] !== null) return;
+
+            const correct = quizData[qIdx].c;
+            const btn = document.querySelector(`.btn-${qIdx}-${oIdx}`);
+            const card = document.querySelector(`.q-card-${qIdx}`);
+            const dot = document.querySelector(`.dot-${qIdx}`);
+            const allBtnsInCard = card.querySelectorAll('.option-btn');
+
+            allBtnsInCard.forEach(b => b.disabled = true);
+
+            if (oIdx === correct) {
+                btn.classList.add('correct');
+                btn.classList.remove('text-gray-300', 'bg-[#020617]');
+                btn.querySelector('div').innerHTML = '<i class="fa-solid fa-check"></i>';
+                btn.querySelector('div').className = 'w-4 h-4 flex items-center justify-center text-[10px] border-none text-[#fff]';
+                userAnswers[qIdx] = true;
+            } else {
+                btn.classList.add('wrong');
+                btn.classList.remove('text-gray-300', 'bg-[#020617]');
+                btn.querySelector('div').innerHTML = '<i class="fa-solid fa-xmark"></i>';
+                btn.querySelector('div').className = 'w-4 h-4 flex items-center justify-center text-[10px] border-none text-white';
+                
+                const correctBtn = document.querySelector(`.btn-${qIdx}-${correct}`);
+                correctBtn.classList.add('correct');
+                correctBtn.classList.remove('text-gray-300', 'bg-[#020617]');
+                correctBtn.querySelector('div').innerHTML = '<i class="fa-solid fa-check"></i>';
+                correctBtn.querySelector('div').className = 'w-4 h-4 flex items-center justify-center text-[10px] border-none text-[#fff]';
+                
+                card.classList.add('shake');
+                userAnswers[qIdx] = false;
+            }
+
+            dot.classList.add('filled');
+            solvedCount++;
+            updateHeader();
+        }
+
+        function updateHeader() {
+            const scoreLabel = document.getElementById('score-counter');
+            scoreLabel.innerText = `${solvedCount}/15 HITS`;
+            
+            scoreLabel.classList.add('text-floyd-fire');
+            scoreLabel.classList.remove('text-white');
+            setTimeout(() => {
+                scoreLabel.classList.remove('text-floyd-fire');
+                scoreLabel.classList.add('text-floyd-fire'); 
+            }, 300);
+        }
+
+        function checkAllAndSubmit() {
+            if (solvedCount < 15) {
+                const btn = document.getElementById('submit-btn');
+                btn.classList.add('shake', 'bg-floyd-wrong', 'text-white', 'border-floyd-wrong');
+                btn.classList.remove('bg-transparent', 'border-floyd-fire', 'text-floyd-fire');
+                btn.innerHTML = "INCOMPLETE DATA!";
+                setTimeout(() => {
+                    btn.classList.remove('shake', 'bg-floyd-wrong', 'text-white', 'border-floyd-wrong');
+                    btn.classList.add('bg-transparent', 'border-floyd-fire', 'text-floyd-fire');
+                    btn.innerHTML = `<i class="fa-solid fa-fire"></i> FINISH SHOW`;
+                }, 1500);
+                return;
+            }
+
+            const finalCorrect = userAnswers.filter(a => a === true).length;
+            const overlay = document.getElementById('success-overlay');
+            const badge = document.getElementById('success-badge');
+            
+            document.getElementById('final-score').innerText = `SCORE: ${finalCorrect} / 15`;
+            
+            overlay.style.display = 'flex';
+            void overlay.offsetWidth;
+            overlay.classList.remove('opacity-0', 'pointer-events-none');
+            
+            setTimeout(() => {
+                badge.classList.remove('scale-50');
+                badge.classList.add('scale-100');
+                shootConfetti();
+            }, 100);
+        }
+
+        function shootConfetti() {
+            const container = document.getElementById('app-container');
+            const colors = ['#ea580c', '#cbd5e1', '#ffffff'];
+            for(let i=0; i<60; i++) {
+                let c = document.createElement('div');
+                c.className = 'confetti rounded-sm';
+                c.style.backgroundColor = colors[Math.floor(Math.random()*colors.length)];
+                c.style.left = Math.random() * 100 + '%';
+                c.style.animation = `fall ${Math.random()*2+2}s linear forwards`;
+                c.style.animationDelay = Math.random()*0.5+'s';
+                container.appendChild(c);
+                setTimeout(() => c.remove(), 4000);
+            }
+        }
+
+        window.onload = initQuiz;
+    </script>
+</body>
+</html>
